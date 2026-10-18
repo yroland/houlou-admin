@@ -65,14 +65,12 @@ export default function Categories() {
       };
 
       if (editingCategory) {
-        // Modification
         await supabaseFetch(`categories?id=eq.${editingCategory.id}`, {
           method: 'PATCH',
           headers: { 'Prefer': 'return=minimal' },
           body: JSON.stringify(payload),
         });
       } else {
-        // Ajout
         await supabaseFetch('categories', {
           method: 'POST',
           headers: { 'Prefer': 'return=minimal' },
@@ -101,7 +99,7 @@ export default function Categories() {
   return (
     <div>
       {/* Header de page */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Gestion des catégories</h1>
           <p className="text-gray-600 text-sm">Organisez les rayons de votre application</p>
@@ -114,57 +112,91 @@ export default function Categories() {
         </button>
       </div>
 
-      {/* Tableau */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-  <div className="overflow-x-auto">
-    <table className="w-full text-left min-w-[600px]">
-          <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm">
-            <tr>
-              <th className="p-4 font-semibold">Emoji</th>
-              <th className="p-4 font-semibold">Nom</th>
-              <th className="p-4 font-semibold">Description</th>
-              <th className="p-4 font-semibold">À la une</th>
-              <th className="p-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr><td colSpan="5" className="p-8 text-center text-gray-500">⏳ Chargement...</td></tr>
-            ) : categories.length === 0 ? (
-              <tr><td colSpan="5" className="p-8 text-center text-gray-500">Aucune catégorie</td></tr>
-            ) : (
-              categories.map((cat) => (
-                <tr key={cat.id} className="hover:bg-gray-50 transition">
-                  <td className="p-4 text-2xl">{cat.emoji}</td>
-                  <td className="p-4 font-semibold text-gray-800">{cat.nom}</td>
-                  <td className="p-4 text-gray-600 text-sm">{cat.description || '—'}</td>
-                  <td className="p-4">
-                    {cat.is_featured ? (
-                      <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">✅ Oui</span>
-                    ) : (
-                      <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">Non</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-right space-x-2">
-                    <button onClick={() => openEditModal(cat)} className="text-blue-600 hover:text-blue-800 font-semibold text-sm">
-                      ✏️ Modifier
-                    </button>
-                    <button onClick={() => handleDelete(cat.id)} className="text-red-600 hover:text-red-800 font-semibold text-sm">
-                      🗑️ Supprimer
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      {/* Vue Desktop : Tableau */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[600px]">
+            <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm">
+              <tr>
+                <th className="p-4 font-semibold">Emoji</th>
+                <th className="p-4 font-semibold">Nom</th>
+                <th className="p-4 font-semibold">Description</th>
+                <th className="p-4 font-semibold">À la une</th>
+                <th className="p-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr><td colSpan="5" className="p-8 text-center text-gray-500">⏳ Chargement...</td></tr>
+              ) : categories.length === 0 ? (
+                <tr><td colSpan="5" className="p-8 text-center text-gray-500">Aucune catégorie</td></tr>
+              ) : (
+                categories.map((cat) => (
+                  <tr key={cat.id} className="hover:bg-gray-50 transition">
+                    <td className="p-4 text-2xl">{cat.emoji}</td>
+                    <td className="p-4 font-semibold text-gray-800">{cat.nom}</td>
+                    <td className="p-4 text-gray-600 text-sm">{cat.description || '—'}</td>
+                    <td className="p-4">
+                      {cat.is_featured ? (
+                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">✅ Oui</span>
+                      ) : (
+                        <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">Non</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-right space-x-2">
+                      <button onClick={() => openEditModal(cat)} className="text-blue-600 hover:text-blue-800 font-semibold text-sm">✏️ Modifier</button>
+                      <button onClick={() => handleDelete(cat.id)} className="text-red-600 hover:text-red-800 font-semibold text-sm">🗑️ Supprimer</button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
+
+      {/* Vue Mobile : Cartes empilées */}
+      <div className="md:hidden space-y-4 pb-6">
+        {loading ? (
+          <div className="text-center p-8 text-gray-500">⏳ Chargement...</div>
+        ) : categories.length === 0 ? (
+          <div className="text-center p-8 text-gray-500">Aucune catégorie</div>
+        ) : (
+          categories.map((cat) => (
+            <div key={cat.id} className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="text-4xl bg-gray-50 p-2 rounded-lg">{cat.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-800 truncate">{cat.nom}</h3>
+                  {cat.is_featured ? (
+                    <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold mt-1 inline-block">✅ À la une</span>
+                  ) : (
+                    <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded mt-1 inline-block">Non</span>
+                  )}
+                </div>
+              </div>
+              
+              {cat.description && (
+                <p className="text-sm text-gray-600 leading-tight">{cat.description}</p>
+              )}
+
+              <div className="flex justify-end gap-4 pt-3 mt-1">
+                <button onClick={() => openEditModal(cat)} className="text-blue-600 text-sm font-semibold flex items-center gap-1">
+                  ✏️ Modifier
+                </button>
+                <button onClick={() => handleDelete(cat.id)} className="text-red-600 text-sm font-semibold flex items-center gap-1">
+                  🗑️ Supprimer
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* MODAL AJOUT / EDITION */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               {editingCategory ? '✏️ Modifier la catégorie' : '➕ Nouvelle catégorie'}
             </h2>
