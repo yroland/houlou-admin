@@ -116,7 +116,8 @@ export default function Categories() {
 
       {/* Tableau */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-left">
+  <div className="overflow-x-auto">
+    <table className="w-full text-left min-w-[600px]">
           <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm">
             <tr>
               <th className="p-4 font-semibold">Emoji</th>
@@ -157,6 +158,7 @@ export default function Categories() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* MODAL AJOUT / EDITION */}

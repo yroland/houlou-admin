@@ -92,6 +92,7 @@ export default function Produits() {
 
       {/* Tableau */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm">
             <tr>
@@ -166,6 +167,7 @@ export default function Produits() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Modal Ajout/Edition */}

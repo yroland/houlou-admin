@@ -117,10 +117,11 @@ export default function Dashboard() {
 
       {/* DERNIÈRES COMMANDES */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-800">📋 Dernières commandes</h2>
-        </div>
-        <table className="w-full text-left">
+  <div className="p-5 border-b border-gray-100">
+    <h2 className="text-lg font-bold text-gray-800">📋 Dernières commandes</h2>
+  </div>
+  <div className="overflow-x-auto">
+    <table className="w-full text-left min-w-[600px]">
           <thead className="bg-gray-50 text-gray-600 text-sm">
             <tr>
               <th className="p-4 font-semibold">N°</th>
@@ -155,6 +156,7 @@ export default function Dashboard() {
             })}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );
