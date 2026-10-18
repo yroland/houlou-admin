@@ -6,12 +6,16 @@ export default function Admins() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   // Formulaire
   const [email, setEmail] = useState('');
   const [nom, setNom] = useState('');
   const [role, setRole] = useState('moderateur');
   const [password, setPassword] = useState('');
+
+  // État pour le "mode création"
+  const [createdUserId, setCreatedUserId] = useState(null);
 
   const loadAdmins = async () => {
     try {
@@ -27,89 +31,186 @@ export default function Admins() {
 
   useEffect(() => { loadAdmins(); }, []);
 
-  const openAdd = () => { setEditing(null); setEmail(''); setNom(''); setRole('moderateur'); setPassword(''); setShowModal(true); };
-  const openEdit = (a) => { setEditing(a); setEmail(a.email); setNom(a.nom); setRole(a.role); setPassword(''); setShowModal(true); };
+  const openAdd = () => { 
+    setEditing(null); setEmail(''); setNom(''); setRole('moderateur'); setPassword(''); setCreatedUserId(null); setShowModal(true); 
+  };
+  
+  const openEdit = (a) => { 
+    setEditing(a); setEmail(a.email); setNom(a.nom); setRole(a.role); setPassword(''); setCreatedUserId(null); setShowModal(true); 
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    setSaving(true);
+
     try {
       if (editing) {
+        // Modification simple
         await supabaseFetch(`admins?id=eq.${editing.id}`, {
           method: 'PATCH',
           headers: { 'Prefer': 'return=minimal' },
           body: JSON.stringify({ nom, role }),
         });
+        setShowModal(false);
+        loadAdmins();
       } else {
-        // ⚠️ Pour créer un admin, il faut d'abord créer le compte Auth
-        alert('Pour créer un nouvel admin, créez d\'abord le compte dans Supabase Auth, puis ajoutez son UUID dans la table admins.');
+        // Création : on appelle une Edge Function pour créer le compte Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (authError) {
+          // Si l'utilisateur existe déjà, on passe à l'étape suivante
+          if (authError.message.includes('already registered')) {
+            alert('Cet email est déjà utilisé. Si vous voulez lui donner des droits, allez dans Supabase Auth et récupérez son UUID.');
+          } else {
+            throw authError;
+          }
+          return;
+        }
+
+        // Si l'inscription a réussi, on récupère l'ID
+        if (authData.user) {
+          setCreatedUserId(authData.user.id);
+          alert('✅ Compte créé ! Cliquez maintenant sur "Valider l\'admin" pour l\'activer.');
+        }
       }
-      setShowModal(false); loadAdmins();
-    } catch (err) { alert('Erreur : ' + err.message); }
+    } catch (err) { 
+      alert('Erreur : ' + err.message); 
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Fonction pour valider l'admin une fois le compte Auth créé
+  const handleActivateAdmin = async () => {
+    if (!createdUserId) return;
+    setSaving(true);
+    try {
+      const permissions = {
+        produits: role === 'manager' || role === 'super_admin',
+        commandes: role !== 'marketing',
+        coursiers: role !== 'marketing',
+        livreurs: role !== 'marketing',
+        promotions: role !== 'support',
+        partenaires: role !== 'support',
+        stats: role !== 'support',
+        parametres: role === 'super_admin',
+      };
+
+      await supabaseFetch('admins', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify([{
+          user_id: createdUserId,
+          email,
+          nom,
+          role,
+          actif: true,
+          permissions
+        }]),
+      });
+
+      alert('🎉 Admin activé avec succès !');
+      setShowModal(false);
+      loadAdmins();
+    } catch (err) {
+      alert('Erreur : ' + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cet admin ?')) return;
+    if (!window.confirm('Supprimer cet admin ? (Son compte Auth restera actif)')) return;
     try {
       await supabaseFetch(`admins?id=eq.${id}`, { method: 'DELETE' });
       loadAdmins();
     } catch (err) { alert('Erreur : ' + err.message); }
   };
 
-  const filtered = admins.filter(a => a.role !== 'super_admin'); // On ne modifie pas le super_admin
-
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Gestion des administrateurs</h1>
-          <p className="text-gray-600 text-sm">Gérez les rôles de votre équipe</p>
+          <p className="text-gray-600 text-sm">Gérez les rôles et accès de votre équipe</p>
         </div>
-        <button onClick={openAdd} className="bg-[#2E7D32] text-white font-bold py-2 px-4 rounded-lg">➕ Ajouter un admin</button>
+        <button onClick={openAdd} className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-bold py-2 px-4 rounded-lg transition">
+          ➕ Ajouter un admin
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading ? <div className="col-span-full text-center p-8">⏳ Chargement...</div> :
-         filtered.map((a) => (
-          <div key={a.id} className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-700 font-bold text-lg">{a.nom?.[0] || 'A'}</div>
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-800">{a.nom}</h3>
-                <p className="text-xs text-gray-500">{a.email}</p>
-              </div>
-            </div>
-            <div className="mb-3">
-              <span className={`px-2 py-1 rounded text-xs font-bold ${a.role === 'super_admin' ? 'bg-purple-100 text-purple-700' : a.role === 'manager' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{a.role}</span>
-            </div>
-            {a.role !== 'super_admin' && (
-              <div className="flex justify-end gap-2 mt-3 border-t pt-3">
-                <button onClick={() => openEdit(a)} className="text-blue-600 text-sm font-semibold">✏️ Modifier</button>
-                <button onClick={() => handleDelete(a.id)} className="text-red-600 text-sm font-semibold">🗑️</button>
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm">
+            <tr>
+              <th className="p-4 font-semibold">Nom</th>
+              <th className="p-4 font-semibold">Email</th>
+              <th className="p-4 font-semibold">Rôle</th>
+              <th className="p-4 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? <tr><td colSpan="4" className="p-8 text-center">⏳ Chargement...</td></tr> : 
+             admins.map(a => (
+              <tr key={a.id} className="hover:bg-gray-50 transition">
+                <td className="p-4 font-semibold text-gray-800">{a.nom}</td>
+                <td className="p-4 text-sm text-gray-600">{a.email}</td>
+                <td className="p-4">
+                  <span className={`px-2 py-1 rounded text-xs font-bold ${a.role === 'super_admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
+                    {a.role}
+                  </span>
+                </td>
+                <td className="p-4 text-right space-x-2">
+                  <button onClick={() => openEdit(a)} className="text-blue-600 text-sm font-semibold">✏️ Modifier</button>
+                  {a.role !== 'super_admin' && (
+                    <button onClick={() => handleDelete(a.id)} className="text-red-600 text-sm font-semibold">🗑️ Supprimer</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">{editing ? 'Modifier l\'admin' : 'Nouvel admin'}</h2>
             <form onSubmit={handleSave} className="space-y-3">
               <div><label className="block text-sm font-semibold mb-1">Nom</label><input type="text" value={nom} onChange={e=>setNom(e.target.value)} required className="w-full border rounded-lg p-2" /></div>
-              <div><label className="block text-sm font-semibold mb-1">Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} disabled={!!editing} required className="w-full border rounded-lg p-2 disabled:bg-gray-100" /></div>
+              
+              {!editing && (
+                <>
+                  <div><label className="block text-sm font-semibold mb-1">Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required className="w-full border rounded-lg p-2" /></div>
+                  <div><label className="block text-sm font-semibold mb-1">Mot de passe</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength="6" className="w-full border rounded-lg p-2" /></div>
+                </>
+              )}
+
               <div>
                 <label className="block text-sm font-semibold mb-1">Rôle</label>
                 <select value={role} onChange={e=>setRole(e.target.value)} className="w-full border rounded-lg p-2">
-                  <option value="manager">Manager</option>
-                  <option value="moderateur">Modérateur</option>
-                  <option value="marketing">Marketing</option>
-                  <option value="support">Support</option>
+                  <option value="manager">Manager (Presque tout)</option>
+                  <option value="moderateur">Modérateur (Commandes, Coursiers, Livreurs)</option>
+                  <option value="marketing">Marketing (Promotions, Partenaires)</option>
+                  <option value="support">Support (Commandes uniquement)</option>
                 </select>
               </div>
               <div className="flex justify-end gap-2 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600">Annuler</button>
-                <button type="submit" className="px-4 py-2 bg-[#2E7D32] text-white rounded-lg font-bold">💾 Enregistrer</button>
+                
+                {/* Le bouton change selon l'étape */}
+                {createdUserId ? (
+                  <button type="button" onClick={handleActivateAdmin} disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">
+                    {saving ? '⏳ Activation...' : '✅ Valider l\'admin'}
+                  </button>
+                ) : (
+                  <button type="submit" disabled={saving} className="px-4 py-2 bg-[#2E7D32] text-white rounded-lg font-bold disabled:opacity-50">
+                    {saving ? '⏳ Création...' : '💾 Créer le compte'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
