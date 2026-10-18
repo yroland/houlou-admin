@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabaseFetch } from '../lib/supabaseAdmin';
+import { supabase, supabaseFetch } from '../lib/supabaseAdmin';
 
 export default function Admins() {
   const [admins, setAdmins] = useState([]);
