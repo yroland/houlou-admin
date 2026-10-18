@@ -13,10 +13,7 @@ export default function Admins() {
   const [nom, setNom] = useState('');
   const [role, setRole] = useState('moderateur');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // ✅ Voir mot de passe
-
-  // Étape de création
-  const [createdUserId, setCreatedUserId] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const loadAdmins = async () => {
     try {
@@ -33,11 +30,11 @@ export default function Admins() {
   useEffect(() => { loadAdmins(); }, []);
 
   const openAdd = () => { 
-    setEditing(null); setEmail(''); setNom(''); setRole('moderateur'); setPassword(''); setCreatedUserId(null); setShowPassword(false); setShowModal(true); 
+    setEditing(null); setEmail(''); setNom(''); setRole('moderateur'); setPassword(''); setShowPassword(false); setShowModal(true); 
   };
   
   const openEdit = (a) => { 
-    setEditing(a); setEmail(a.email); setNom(a.nom); setRole(a.role); setPassword(''); setCreatedUserId(null); setShowPassword(false); setShowModal(true); 
+    setEditing(a); setEmail(a.email); setNom(a.nom); setRole(a.role); setPassword(''); setShowPassword(false); setShowModal(true); 
   };
 
   const handleSave = async (e) => {
@@ -46,6 +43,7 @@ export default function Admins() {
 
     try {
       if (editing) {
+        // Modification
         await supabaseFetch(`admins?id=eq.${editing.id}`, {
           method: 'PATCH',
           headers: { 'Prefer': 'return=minimal' },
@@ -54,62 +52,20 @@ export default function Admins() {
         setShowModal(false);
         loadAdmins();
       } else {
-        // Création du compte Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+        // ✅ Appel de l'Edge Function sécurisée
+        const { data, error } = await supabase.functions.invoke('create-admin', {
+          body: { email, password, nom, role }
+        });
 
-        if (authError) {
-          if (authError.message.includes('already registered')) {
-            alert('Cet email est déjà utilisé. Si c\'est le vôtre, vous pouvez récupérer l\'UUID dans Supabase et l\'ajouter directement.');
-          } else {
-            throw authError;
-          }
-          return;
-        }
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
 
-        if (authData.user) {
-          setCreatedUserId(authData.user.id);
-        }
+        alert('🎉 Admin créé avec succès !');
+        setShowModal(false);
+        loadAdmins();
       }
     } catch (err) { 
       alert('Erreur : ' + err.message); 
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleActivateAdmin = async () => {
-    if (!createdUserId) return;
-    setSaving(true);
-    try {
-      const permissions = {
-        produits: role === 'manager' || role === 'super_admin',
-        commandes: role !== 'marketing',
-        coursiers: role !== 'marketing',
-        livreurs: role !== 'marketing',
-        promotions: role !== 'support',
-        partenaires: role !== 'support',
-        stats: role !== 'support',
-        parametres: role === 'super_admin',
-      };
-
-      await supabaseFetch('admins', {
-        method: 'POST',
-        headers: { 'Prefer': 'return=minimal' },
-        body: JSON.stringify([{
-          user_id: createdUserId,
-          email,
-          nom,
-          role,
-          actif: true,
-          permissions
-        }]),
-      });
-
-      alert('🎉 Admin activé avec succès !');
-      setShowModal(false);
-      loadAdmins();
-    } catch (err) {
-      alert('Erreur : ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -179,7 +135,6 @@ export default function Admins() {
                 <>
                   <div><label className="block text-sm font-semibold mb-1">Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required className="w-full border rounded-lg p-2" /></div>
                   
-                  {/* ✅ Champ mot de passe avec bouton voir */}
                   <div>
                     <label className="block text-sm font-semibold mb-1">Mot de passe</label>
                     <div className="relative">
@@ -215,25 +170,13 @@ export default function Admins() {
               
               <div className="flex justify-end gap-2 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600">Annuler</button>
-                
-                {createdUserId ? (
-                  <button 
-                    type="button" 
-                    onClick={handleActivateAdmin} 
-                    disabled={saving} 
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold"
-                  >
-                    {saving ? '⏳ Activation...' : '✅ Valider l\'admin'}
-                  </button>
-                ) : (
-                  <button 
-                    type="submit" 
-                    disabled={saving} 
-                    className="px-4 py-2 bg-[#2E7D32] text-white rounded-lg font-bold disabled:opacity-50"
-                  >
-                    {saving ? '⏳ Création...' : '💾 Créer le compte'}
-                  </button>
-                )}
+                <button 
+                  type="submit" 
+                  disabled={saving} 
+                  className="px-4 py-2 bg-[#2E7D32] text-white rounded-lg font-bold disabled:opacity-50"
+                >
+                  {saving ? '⏳ Création...' : '💾 Créer le compte'}
+                </button>
               </div>
             </form>
           </div>
