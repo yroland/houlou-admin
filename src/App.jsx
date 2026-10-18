@@ -11,6 +11,7 @@ import Coursiers from './pages/Coursiers';
 import Livreurs from './pages/Livreurs';
 import Promotions from './pages/Promotions';
 import Partenaires from './pages/Partenaires';
+import Admins from './pages/Admins';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="commandes" element={<Commandes />} />
             <Route path="coursiers" element={<Coursiers />} />
             <Route path="livreurs" element={<Livreurs />} />
+            <Route path="admins" element={<Admins />} />
             <Route path="promotions" element={<Promotions />} />
             <Route path="partenaires" element={<Partenaires />} />
           </Route>

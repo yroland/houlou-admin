@@ -35,7 +35,7 @@ export default function Layout() {
         <div className="fixed inset-0 z-50 flex md:hidden">
   {/* Overlay sombre semi-transparent */}
   <div 
-    className="fixed inset-0 bg-black/60 backdrop-blur-sm" 
+    className="fixed inset-0 bg-black/40 backdrop-blur-sm" 
     onClick={() => setIsMobileMenuOpen(false)}
   ></div>
           

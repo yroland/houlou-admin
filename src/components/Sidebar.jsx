@@ -12,6 +12,7 @@ const MENU_ITEMS = [
   { section: 'promotions', path: '/promotions', icon: '🎁', label: 'Promotions' },
   { section: 'partenaires', path: '/partenaires', icon: '🤝', label: 'Partenaires' },
   { section: 'parametres', path: '/parametres', icon: '⚙️', label: 'Paramètres' },
+  { section: 'stats', path: '/admins', icon: '👥', label: 'Administrateurs' },
 ];
 
 export default function Sidebar({ onClose }) {

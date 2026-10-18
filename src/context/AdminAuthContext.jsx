@@ -50,12 +50,14 @@ export function AdminAuthProvider({ children }) {
   }, []);
 
   const checkSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      await loadAdminProfile(session.user.id);
-    }
-    setLoading(false);
-  };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) {
+    await loadAdminProfile(session.user.id);
+  } else {
+    setAdmin(null);
+  }
+  setLoading(false);
+};
 
   // ============ LOGIN ============
   const signIn = async (email, password) => {
