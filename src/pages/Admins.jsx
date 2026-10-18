@@ -54,9 +54,9 @@ export default function Admins() {
       } else {
         // ✅ Appel de l'Edge Function sécurisée
         const { data, error } = await supabase.functions.invoke('create-admin', {
-          body: { email, password, nom, role }
-        });
-
+  body: JSON.stringify({ email, password, nom, role }),
+  headers: { 'Content-Type': 'application/json' }
+});
         if (error) throw new Error(error.message);
         if (data?.error) throw new Error(data.error);
 
