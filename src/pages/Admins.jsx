@@ -13,8 +13,9 @@ export default function Admins() {
   const [nom, setNom] = useState('');
   const [role, setRole] = useState('moderateur');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // ✅ Voir mot de passe
 
-  // État pour le "mode création"
+  // Étape de création
   const [createdUserId, setCreatedUserId] = useState(null);
 
   const loadAdmins = async () => {
@@ -32,11 +33,11 @@ export default function Admins() {
   useEffect(() => { loadAdmins(); }, []);
 
   const openAdd = () => { 
-    setEditing(null); setEmail(''); setNom(''); setRole('moderateur'); setPassword(''); setCreatedUserId(null); setShowModal(true); 
+    setEditing(null); setEmail(''); setNom(''); setRole('moderateur'); setPassword(''); setCreatedUserId(null); setShowPassword(false); setShowModal(true); 
   };
   
   const openEdit = (a) => { 
-    setEditing(a); setEmail(a.email); setNom(a.nom); setRole(a.role); setPassword(''); setCreatedUserId(null); setShowModal(true); 
+    setEditing(a); setEmail(a.email); setNom(a.nom); setRole(a.role); setPassword(''); setCreatedUserId(null); setShowPassword(false); setShowModal(true); 
   };
 
   const handleSave = async (e) => {
@@ -45,7 +46,6 @@ export default function Admins() {
 
     try {
       if (editing) {
-        // Modification simple
         await supabaseFetch(`admins?id=eq.${editing.id}`, {
           method: 'PATCH',
           headers: { 'Prefer': 'return=minimal' },
@@ -54,26 +54,20 @@ export default function Admins() {
         setShowModal(false);
         loadAdmins();
       } else {
-        // Création : on appelle une Edge Function pour créer le compte Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+        // Création du compte Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
 
         if (authError) {
-          // Si l'utilisateur existe déjà, on passe à l'étape suivante
           if (authError.message.includes('already registered')) {
-            alert('Cet email est déjà utilisé. Si vous voulez lui donner des droits, allez dans Supabase Auth et récupérez son UUID.');
+            alert('Cet email est déjà utilisé. Si c\'est le vôtre, vous pouvez récupérer l\'UUID dans Supabase et l\'ajouter directement.');
           } else {
             throw authError;
           }
           return;
         }
 
-        // Si l'inscription a réussi, on récupère l'ID
         if (authData.user) {
           setCreatedUserId(authData.user.id);
-          alert('✅ Compte créé ! Cliquez maintenant sur "Valider l\'admin" pour l\'activer.');
         }
       }
     } catch (err) { 
@@ -83,7 +77,6 @@ export default function Admins() {
     }
   };
 
-  // Fonction pour valider l'admin une fois le compte Auth créé
   const handleActivateAdmin = async () => {
     if (!createdUserId) return;
     setSaving(true);
@@ -123,7 +116,7 @@ export default function Admins() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cet admin ? (Son compte Auth restera actif)')) return;
+    if (!window.confirm('Supprimer cet admin ?')) return;
     try {
       await supabaseFetch(`admins?id=eq.${id}`, { method: 'DELETE' });
       loadAdmins();
@@ -138,7 +131,7 @@ export default function Admins() {
           <p className="text-gray-600 text-sm">Gérez les rôles et accès de votre équipe</p>
         </div>
         <button onClick={openAdd} className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-bold py-2 px-4 rounded-lg transition">
-          ➕ Ajouter un admin
+          ➕ Ajouter un administrateur
         </button>
       </div>
 
@@ -185,7 +178,28 @@ export default function Admins() {
               {!editing && (
                 <>
                   <div><label className="block text-sm font-semibold mb-1">Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required className="w-full border rounded-lg p-2" /></div>
-                  <div><label className="block text-sm font-semibold mb-1">Mot de passe</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength="6" className="w-full border rounded-lg p-2" /></div>
+                  
+                  {/* ✅ Champ mot de passe avec bouton voir */}
+                  <div>
+                    <label className="block text-sm font-semibold mb-1">Mot de passe</label>
+                    <div className="relative">
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        value={password} 
+                        onChange={e=>setPassword(e.target.value)} 
+                        required 
+                        minLength="6" 
+                        className="w-full border rounded-lg p-2 pr-10" 
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
+                      >
+                        {showPassword ? '🙈' : '👁️'}
+                      </button>
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -198,16 +212,25 @@ export default function Admins() {
                   <option value="support">Support (Commandes uniquement)</option>
                 </select>
               </div>
+              
               <div className="flex justify-end gap-2 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600">Annuler</button>
                 
-                {/* Le bouton change selon l'étape */}
                 {createdUserId ? (
-                  <button type="button" onClick={handleActivateAdmin} disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">
+                  <button 
+                    type="button" 
+                    onClick={handleActivateAdmin} 
+                    disabled={saving} 
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold"
+                  >
                     {saving ? '⏳ Activation...' : '✅ Valider l\'admin'}
                   </button>
                 ) : (
-                  <button type="submit" disabled={saving} className="px-4 py-2 bg-[#2E7D32] text-white rounded-lg font-bold disabled:opacity-50">
+                  <button 
+                    type="submit" 
+                    disabled={saving} 
+                    className="px-4 py-2 bg-[#2E7D32] text-white rounded-lg font-bold disabled:opacity-50"
+                  >
                     {saving ? '⏳ Création...' : '💾 Créer le compte'}
                   </button>
                 )}
