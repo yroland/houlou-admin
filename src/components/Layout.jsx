@@ -33,11 +33,11 @@ export default function Layout() {
       {/* Sidebar Mobile (Drawer) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          {/* Overlay sombre */}
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50" 
-            onClick={() => setIsMobileMenuOpen(false)}
-          ></div>
+  {/* Overlay sombre semi-transparent */}
+  <div 
+    className="fixed inset-0 bg-black/60 backdrop-blur-sm" 
+    onClick={() => setIsMobileMenuOpen(false)}
+  ></div>
           
           {/* Menu */}
           <div className="relative z-50 w-64 h-full bg-white shadow-xl">

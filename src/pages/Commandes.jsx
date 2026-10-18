@@ -17,13 +17,10 @@ export default function Commandes() {
   const [filtreStatut, setFiltreStatut] = useState('tous');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // ============ CHARGER LES COMMANDES ============
   const loadCommandes = async () => {
     try {
       setLoading(true);
-      const data = await supabaseFetch(
-        'commandes?select=*&order=created_at.desc&limit=100'
-      );
+      const data = await supabaseFetch('commandes?select=*&order=created_at.desc&limit=100');
       setCommandes(data || []);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
@@ -32,11 +29,8 @@ export default function Commandes() {
     }
   };
 
-  useEffect(() => {
-    loadCommandes();
-  }, []);
+  useEffect(() => { loadCommandes(); }, []);
 
-  // ============ FILTRES ============
   const filteredCommandes = commandes.filter((c) => {
     const matchStatus = filtreStatut === 'tous' || c.status === filtreStatut;
     const matchSearch = 
@@ -46,7 +40,6 @@ export default function Commandes() {
     return matchStatus && matchSearch;
   });
 
-  // ============ FORMAT DATE ============
   const formatDate = (iso) => {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('fr-FR', {
@@ -62,18 +55,15 @@ export default function Commandes() {
           <h1 className="text-2xl font-bold text-gray-800">Gestion des commandes</h1>
           <p className="text-gray-600 text-sm">Suivez l'état de toutes les commandes</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full md:w-auto">
           <input
             type="text"
-            placeholder="🔍 Rechercher (N°, adresse...)"
+            placeholder="🔍 Rechercher..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-64"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 md:w-64"
           />
-          <button
-            onClick={loadCommandes}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold text-sm"
-          >
+          <button onClick={loadCommandes} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap">
             🔄 Actualiser
           </button>
         </div>
@@ -106,10 +96,10 @@ export default function Commandes() {
         })}
       </div>
 
-      {/* Tableau */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      {/* Vue Desktop : Tableau */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[700px]">
             <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-sm">
               <tr>
                 <th className="p-4 font-semibold">N°</th>
@@ -130,33 +120,15 @@ export default function Commandes() {
                   const status = STATUS_CONFIG[cmd.status] || STATUS_CONFIG.en_attente;
                   return (
                     <tr key={cmd.id} className="hover:bg-gray-50 transition">
-                      <td className="p-4 font-mono text-sm font-semibold text-gray-700">
-                        {cmd.reference || `#${cmd.id}`}
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">
-                        {formatDate(cmd.created_at)}
-                      </td>
-                      <td className="p-4 text-sm text-gray-800">
-                        📍 {cmd.adresse}
-                      </td>
-                      <td className="p-4 font-bold text-[#2E7D32]">
-                        {cmd.total?.toLocaleString()} F
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${status.color}`}>
-                          {status.label}
-                        </span>
-                      </td>
+                      <td className="p-4 font-mono text-sm font-semibold text-gray-700">{cmd.reference || `#${cmd.id}`}</td>
+                      <td className="p-4 text-sm text-gray-600">{formatDate(cmd.created_at)}</td>
+                      <td className="p-4 text-sm text-gray-800">📍 {cmd.adresse}</td>
+                      <td className="p-4 font-bold text-[#2E7D32]">{cmd.total?.toLocaleString()} F</td>
+                      <td className="p-4"><span className={`px-2 py-1 rounded-full text-xs font-bold ${status.color}`}>{status.label}</span></td>
                       <td className="p-4 text-sm">
-                        {cmd.coursier_nom && (
-                          <div className="text-xs text-blue-600">🏃 {cmd.coursier_nom}</div>
-                        )}
-                        {cmd.livreur_id && (
-                          <div className="text-xs text-purple-600">🛵 Assigné</div>
-                        )}
-                        {!cmd.coursier_nom && !cmd.livreur_id && (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
+                        {cmd.coursier_nom && <div className="text-xs text-blue-600">🏃 {cmd.coursier_nom}</div>}
+                        {cmd.livreur_id && <div className="text-xs text-purple-600">🛵 Assigné</div>}
+                        {!cmd.coursier_nom && !cmd.livreur_id && <span className="text-xs text-gray-400">—</span>}
                       </td>
                     </tr>
                   );
@@ -165,6 +137,38 @@ export default function Commandes() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Vue Mobile : Cartes empilées */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="text-center p-8 text-gray-500">⏳ Chargement...</div>
+        ) : filteredCommandes.length === 0 ? (
+          <div className="text-center p-8 text-gray-500">Aucune commande trouvée</div>
+        ) : (
+          filteredCommandes.map((cmd) => {
+            const status = STATUS_CONFIG[cmd.status] || STATUS_CONFIG.en_attente;
+            return (
+              <div key={cmd.id} className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="font-mono text-sm font-bold text-gray-700">{cmd.reference || `#${cmd.id}`}</span>
+                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${status.color}`}>{status.label}</span>
+                </div>
+                <div className="text-xs text-gray-500 mb-2">📅 {formatDate(cmd.created_at)}</div>
+                <div className="text-sm text-gray-800 mb-3">📍 {cmd.adresse}</div>
+                <div className="flex justify-between items-end border-t pt-3 mt-3">
+                  <div>
+                    {cmd.coursier_nom && <div className="text-[11px] text-blue-600">🏃 {cmd.coursier_nom}</div>}
+                    {cmd.livreur_id && <div className="text-[11px] text-purple-600">🛵 Assigné</div>}
+                  </div>
+                  <div className="text-lg font-bold text-[#2E7D32]">
+                    {cmd.total?.toLocaleString()} F
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
