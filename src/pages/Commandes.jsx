@@ -121,7 +121,7 @@ export default function Commandes() {
               </div>
               <div className="text-xs text-gray-500 mb-2">📅 {formatDate(cmd.created_at)}</div>
               <div className="text-sm text-gray-800 mb-3">📍 {cmd.adresse}</div>
-              <div className="flex justify-between items-center border-t pt-3 mt-3">
+              <div className="flex justify-between items-center pt-3 mt-2">
                 <button onClick={() => handleViewDetails(cmd)} className="text-blue-600 text-sm font-semibold">👁️ Détails</button>
                 <div className="text-lg font-bold text-[#2E7D32]">{cmd.total?.toLocaleString()} F</div>
               </div>
@@ -134,8 +134,8 @@ export default function Commandes() {
       {selectedCommande && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4 border-b pb-3">
-              <h2 className="text-xl font-bold text-gray-800">Commande {selectedCommande.reference || `#${selectedCommande.id}`}</h2>
+            <div className="flex justify-between items-center mb-4 pb-3">
+  <h2 className="text-xl font-bold text-gray-800">...</h2>
               <button onClick={() => setSelectedCommande(null)} className="text-gray-400 hover:text-red-500 text-2xl">&times;</button>
             </div>
 
@@ -151,7 +151,7 @@ export default function Commandes() {
                 {loadingItems ? <p className="text-gray-500 text-sm">⏳ Chargement...</p> : (
                   <div className="space-y-2">
                     {commandeItems.map((item) => (
-                      <div key={item.id} className="flex justify-between text-sm border-b pb-2">
+                      <div key={item.id} className="flex justify-between text-sm pb-2">
                         <span>{item.produits?.nom} x {item.quantite}</span>
                         <span className="font-semibold">{item.prix_unitaire}</span>
                       </div>
@@ -160,7 +160,7 @@ export default function Commandes() {
                 )}
               </div>
 
-              <div className="border-t pt-3 flex justify-between items-center">
+              <div className="pt-3 flex justify-between items-center">
                 <span className="font-bold text-gray-800">Total</span>
                 <span className="font-bold text-[#2E7D32] text-lg">{selectedCommande.total?.toLocaleString()} F</span>
               </div>
